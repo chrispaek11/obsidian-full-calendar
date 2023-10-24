@@ -50,11 +50,23 @@ function getCalendarColors(color: string | null | undefined): {
     };
 }
 
+interface ExtendedView {
+    type: string;
+    currentStart: Date;
+}
+
+type MinimalDatesSetInfo = {
+    startStr: string;
+    view: ExtendedView;
+};
+
 export class CalendarView extends ItemView {
     plugin: FullCalendarPlugin;
     inSidebar: boolean;
     fullCalendarView: Calendar | null = null;
     callback: UpdateViewCallback | null = null;
+
+    isInitializing: boolean = true;
 
     constructor(
         leaf: WorkspaceLeaf,
@@ -94,6 +106,9 @@ export class CalendarView extends ItemView {
     }
 
     async onOpen() {
+        this.isInitializing = true;
+
+
         await this.plugin.loadSettings();
         if (!this.plugin.cache) {
             new Notice("Full Calendar event cache not loaded.");
@@ -122,7 +137,13 @@ export class CalendarView extends ItemView {
             this.fullCalendarView.destroy();
             this.fullCalendarView = null;
         }
-        this.fullCalendarView = renderCalendar(calendarEl, sources, {
+         //Added this to load based on the Recent view type user looked at
+         const initialViewSetting = {
+            desktop: this.plugin.settings.RecentlyViewedViewType ? this.plugin.settings.RecentlyViewedViewType : "timeGridWeek",
+            mobile: "timeGrid3Days"  // Or whatever you want the default mobile view to be
+        };
+
+        this.fullCalendarView = renderCalendar(calendarEl, sources, this.plugin, this.dateSetCallback.bind(this), {
             forceNarrow: this.inSidebar,
             eventClick: async (info) => {
                 try {
@@ -208,7 +229,8 @@ export class CalendarView extends ItemView {
                 } catch (e) {}
             },
             firstDay: this.plugin.settings.firstDay,
-            initialView: this.plugin.settings.initialView,
+            
+            initialView: initialViewSetting,
             timeFormat24h: this.plugin.settings.timeFormat24h,
             openContextMenuForEvent: async (e, mouseEvent) => {
                 const menu = new Menu();
@@ -294,7 +316,10 @@ export class CalendarView extends ItemView {
                 }
                 return true;
             },
+     
         });
+       
+
         // @ts-ignore
         window.fc = this.fullCalendarView;
 
@@ -361,6 +386,14 @@ export class CalendarView extends ItemView {
                 });
             }
         });
+
+        if (this.plugin.settings.RecentlyViewedDate) {
+            const dateToNavigateTo = new Date(this.plugin.settings.RecentlyViewedDate);
+            this.fullCalendarView?.gotoDate(dateToNavigateTo);
+        }
+
+        this.isInitializing = false;    
+
     }
 
     onResize(): void {
@@ -378,5 +411,25 @@ export class CalendarView extends ItemView {
             this.plugin.cache.off("update", this.callback);
             this.callback = null;
         }
+    }
+   
+    dateSetCallback(info: MinimalDatesSetInfo) {
+        if (this.isInitializing) {
+            // If currently initializing, do not proceed further.
+            return;
+        }
+    
+        let dateToSave;
+    
+        dateToSave = info.view.currentStart.toISOString();
+       
+    
+        // Save the current date and view type in the plugin's settings
+        this.plugin.settings.RecentlyViewedDate = dateToSave;
+        this.plugin.settings.RecentlyViewedViewType = info.view.type;
+       
+    
+        // Save the updated settings
+        this.plugin.saveSettings();
     }
 }

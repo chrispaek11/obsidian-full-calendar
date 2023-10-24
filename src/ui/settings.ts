@@ -18,6 +18,11 @@ import ReactModal from "./ReactModal";
 import { importCalendars } from "src/calendars/parsing/caldav/import";
 
 export interface FullCalendarSettings {
+    //lastViewed setting added here
+    RecentlyViewedDate?: string;  // or Date, or whatever the type should be
+    RecentlyViewedViewType?: string;
+
+
     calendarSources: CalendarInfo[];
     defaultCalendar: number;
     firstDay: number;
@@ -274,3 +279,4 @@ export class FullCalendarSettingTab extends PluginSettingTab {
         );
     }
 }
+ 

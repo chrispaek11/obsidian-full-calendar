@@ -16,6 +16,9 @@ import interactionPlugin from "@fullcalendar/interaction";
 import googleCalendarPlugin from "@fullcalendar/google-calendar";
 import iCalendarPlugin from "@fullcalendar/icalendar";
 
+import FullCalendarPlugin from "../main";
+
+
 // There is an issue with FullCalendar RRule support around DST boundaries which is fixed by this monkeypatch:
 // https://github.com/fullcalendar/fullcalendar/issues/5273#issuecomment-1360459342
 rrulePlugin.recurringTypes[0].expand = function (errd, fr, de) {
@@ -56,10 +59,19 @@ interface ExtraRenderProps {
     forceNarrow?: boolean;
 }
 
+
+
+
+
 export function renderCalendar(
     containerEl: HTMLElement,
     eventSources: EventSourceInput[],
+    plugin: FullCalendarPlugin,  // Add this line
+
+    dateSetCallback: (info: any) => void,  // Add this line
+    
     settings?: ExtraRenderProps
+    
 ): Calendar {
     const isMobile = window.innerWidth < 500;
     const isNarrow = settings?.forceNarrow || isMobile;
@@ -87,6 +99,10 @@ export function renderCalendar(
                 revert();
             }
         });
+    
+
+
+    
 
     const cal = new Calendar(containerEl, {
         plugins: [
@@ -109,6 +125,17 @@ export function renderCalendar(
         scrollTimeReset: false,
         dayMaxEvents: true,
 
+        datesSet: (info) => {
+            if (dateSetCallback) {
+                dateSetCallback(info);
+            }
+           
+        },
+
+
+
+      
+        
         headerToolbar: !isNarrow
             ? {
                   left: "prev,next today",
@@ -220,6 +247,7 @@ export function renderCalendar(
         },
 
         longPressDelay: 250,
+        
     });
     cal.render();
     return cal;
