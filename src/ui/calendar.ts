@@ -102,7 +102,7 @@ export function renderCalendar(
     
 
 
-    
+    let isPrevButtonClick = false; // Flag to indicate if Prev button was clicked
 
     const cal = new Calendar(containerEl, {
         plugins: [
@@ -126,25 +126,51 @@ export function renderCalendar(
         dayMaxEvents: true,
 
         datesSet: (info) => {
+            // If the Prev button was clicked
+            if (isPrevButtonClick) {
+                isPrevButtonClick = false; // Reset the flag for the next interactions
+                return; // Exit early to prevent further processing for this datesSet event
+            }
+
             if (dateSetCallback) {
                 dateSetCallback(info);
             }
            
         },
 
-
-
-      
+        customButtons: {
+            previous: {
+                text: 'Prev',
+                click: function() {
+                    isPrevButtonClick = true; //Set the flag because goToDate and changeView trigger datesSet twice and we don't want that
+                    if (plugin && plugin.settings) {
+                        const prevMonthAndYear = plugin.settings.PrevViewMonthAndYear;
+                        if (prevMonthAndYear) {
+                            const [year, month] = prevMonthAndYear.split('-').map(Number);
+                            // Construct a date from the year and month
+                            const prevDate = new Date(year, month, 1);
+                            cal.gotoDate(prevDate);
+                            cal.changeView('dayGridMonth'); // Always switch to the "Month" view
+                        } else {
+                            console.warn("No previous month and year saved.");
+                        }
+                    } else {
+                        console.error("Plugin or plugin.settings is not defined.");
+                    }
+                    isPrevButtonClick = false; //Reset the flag
+                }
+            }
+        },
         
         headerToolbar: !isNarrow
             ? {
-                  left: "prev,next today",
+                  left: "prev,next today previous",
                   center: "title",
                   right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
               }
             : !isMobile
             ? {
-                  right: "today,prev,next",
+                  right: "today,prev,next previous",
                   left: "timeGrid3Days,timeGridDay,listWeek",
               }
             : false,

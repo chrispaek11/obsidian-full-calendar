@@ -80,3 +80,9 @@
 	border-color: black !important;
 	border-width: 1px !important;
 }
+
+
+.fc-previous-button.disabled {
+    pointer-events: none;
+    opacity: 0.5;
+}

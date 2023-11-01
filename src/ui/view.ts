@@ -139,7 +139,7 @@ export class CalendarView extends ItemView {
         }
          //Added this to load based on the Recent view type user looked at
          const initialViewSetting = {
-            desktop: this.plugin.settings.RecentlyViewedViewType ? this.plugin.settings.RecentlyViewedViewType : "timeGridWeek",
+            desktop: this.plugin.settings.RecentlyViewType ? this.plugin.settings.RecentlyViewType : "timeGridWeek",
             mobile: "timeGrid3Days"  // Or whatever you want the default mobile view to be
         };
 
@@ -386,9 +386,10 @@ export class CalendarView extends ItemView {
                 });
             }
         });
-
-        if (this.plugin.settings.RecentlyViewedDate) {
-            const dateToNavigateTo = new Date(this.plugin.settings.RecentlyViewedDate);
+        //This will load view of certain date user last looked at before closing plugin view
+        if (this.plugin.settings.RecentlyViewDate) {    
+            const dateToNavigateTo = new Date(this.plugin.settings.RecentlyViewDate);
+            
             this.fullCalendarView?.gotoDate(dateToNavigateTo);
         }
 
@@ -413,23 +414,57 @@ export class CalendarView extends ItemView {
         }
     }
    
+
     dateSetCallback(info: MinimalDatesSetInfo) {
         if (this.isInitializing) {
             // If currently initializing, do not proceed further.
             return;
         }
     
-        let dateToSave;
-    
-        dateToSave = info.view.currentStart.toISOString();
+        const viewStartDate = new Date(info.view.currentStart);
+        const currentMonth = viewStartDate.getMonth();
+        const currentYear = viewStartDate.getFullYear();
+        const currentMonthAndYear = `${currentYear}-${currentMonth}`;
+        
+
+        const recentlyViewedMonthAndYear = this.plugin.settings.RecentlyViewMonthAndYear;
+        const prevViewMonthAndYear = this.plugin.settings.PrevViewMonthAndYear;
+
+        //We want to put some condition here bc this should be only called when new month change happens
+        if(currentMonthAndYear !== recentlyViewedMonthAndYear)
+        {
+            this.plugin.settings.PrevViewMonthAndYear = recentlyViewedMonthAndYear;
+        }
+        this.plugin.settings.RecentlyViewMonthAndYear = currentMonthAndYear;
+        this.plugin.settings.RecentlyViewDate = info.view.currentStart.toISOString();
+        this.plugin.settings.RecentlyViewType = info.view.type;
+        
        
-    
-        // Save the current date and view type in the plugin's settings
-        this.plugin.settings.RecentlyViewedDate = dateToSave;
-        this.plugin.settings.RecentlyViewedViewType = info.view.type;
-       
-    
         // Save the updated settings
         this.plugin.saveSettings();
+        
+        // Check and update the state of the "Prev" button
+        const prevButton = document.querySelector(".fc-previous-button"); 
+    
+        if (prevButton) {
+            if (this.plugin.settings.PrevViewMonthAndYear) {
+                const prevMonthAndYear = this.plugin.settings.PrevViewMonthAndYear.split("-");
+                const prevMonth = parseInt(prevMonthAndYear[1]);
+    
+                if (this.shouldDisablePrevButton(currentMonth, prevMonth)) {
+                    prevButton.classList.add('disabled');
+                    console.log("inside Should Disable Prev Button!! ")
+                } else {
+                    prevButton.classList.remove('disabled');
+                }
+            }
+        }
     }
+    
+    private shouldDisablePrevButton(currentMonth: number, prevMonth: number): boolean {
+        return currentMonth === prevMonth;
+    }
+    
 }
+
+

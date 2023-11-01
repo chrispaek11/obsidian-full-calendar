@@ -18,10 +18,12 @@ import ReactModal from "./ReactModal";
 import { importCalendars } from "src/calendars/parsing/caldav/import";
 
 export interface FullCalendarSettings {
-    //lastViewed setting added here
-    RecentlyViewedDate?: string;  // or Date, or whatever the type should be
-    RecentlyViewedViewType?: string;
-
+    //settings for the new feature of recent and prev
+    RecentlyViewDate?: string;  // or Date, or whatever the type should be
+    RecentlyViewType?: string;
+    RecentlyViewMonthAndYear?: string;
+   
+    PrevViewMonthAndYear?: string;
 
     calendarSources: CalendarInfo[];
     defaultCalendar: number;
